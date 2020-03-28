@@ -49,6 +49,6 @@ project "nomad-fiber"
 		links { "optick" }
 		
 	filter "configurations:Shipping"
-		defines { "USE_OPTICK=0" }
+		defines { "USE_OPTICK=0", "SHIPPING" }
 	
 	filter {}

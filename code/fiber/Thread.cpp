@@ -13,6 +13,8 @@
 #include <fiber/Exception.h>
 #include <fiber/Fiber.h>
 #include <fiber/Thread.h>
+#include <optick.h>
+
 #ifdef _WIN32
 #include <Windows.h>
 #endif

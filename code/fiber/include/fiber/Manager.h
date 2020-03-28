@@ -35,6 +35,7 @@ namespace nmd::fiber
 		uint8_t NumThreads;						// Amount of Worker Threads, default = amount of Cores
 		uint16_t NumFibers = 25;				// Amount of Fibers
 		bool ThreadAffinity = false;			// Lock each Thread to a processor core, requires NumThreads == amount of cores
+		bool AutoSpawnThreads = true;			// Spawn threads automatically
 
 		// Worker Queue Sizes
 		size_t HighPriorityQueueSize   = 512;	// High Priority
@@ -73,6 +74,7 @@ namespace nmd::fiber
 		uint8_t _numThreads = 0;
 		Thread* _threads = nullptr;
 		bool _hasThreadAffinity = false;
+		bool _autoSpawnThreads = true;
 
 		// Fibers
 		uint16_t _numFibers = 0;
@@ -119,13 +121,24 @@ namespace nmd::fiber
 		void ScheduleJob(JobPriority, const JobInfo&);
 
 		// Counter
-		void WaitForCounter(detail::BaseCounter*, uint32_t = 0);
+		void WaitForCounter(detail::BaseCounter*, uint32_t = 0, bool blocking = false);
 		void WaitForSingle(JobPriority, JobInfo);
 
 		// Getter
 		inline bool IsShuttingDown() const { return _shuttingDown.load(std::memory_order_acquire); };
 		const uint8_t GetNumThreads() const { return _numThreads; };
 		const uint16_t GetNumFibers() const { return _numFibers; };
+
+		// Threads
+		Thread *GetThread(uint8_t idx);
+
+		// when using AutoSpawnThreads = false, all GetNumThreads() have to be initialized:
+		// 1) SpawnThread creates a Worker Thread
+		bool SpawnThread(uint8_t idx);
+		// 2) SetupThread only initializes all TLS values. The Thread can be created anyhwere else
+		// but has to be initialized using this function before it can be used.
+		// This function MUST be called from the target thread!
+		bool SetupThread(uint8_t idx);
 
 		// Easy Scheduling
 		template <typename Callable, typename... Args>
