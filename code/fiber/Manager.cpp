@@ -18,6 +18,7 @@
 nmd::fiber::Manager::Manager(const ManagerOptions& options) :
 	_numThreads(options.NumThreads + 1 /* IO */),
 	_hasThreadAffinity(options.ThreadAffinity),
+	_autoSpawnThreads(options.AutoSpawnThreads),
 	_numFibers(options.NumFibers),
 	_highPriorityQueue(options.HighPriorityQueueSize),
 	_normalPriorityQueue(options.NormalPriorityQueueSize),
@@ -31,6 +32,39 @@ nmd::fiber::Manager::~Manager()
 	delete[] _threads;
 	delete[] _fibers;
 	delete[] _idleFibers;
+}
+
+nmd::fiber::Thread *nmd::fiber::Manager::GetThread(uint8_t idx)
+{
+	assert(idx < _numThreads);
+	return &_threads[idx];
+}
+
+bool nmd::fiber::Manager::SpawnThread(uint8_t idx)
+{
+	return GetThread(idx)->Spawn(ThreadCallback_Worker, this);
+}
+
+bool nmd::fiber::Manager::SetupThread(uint8_t idx)
+{
+	auto thread = GetThread(idx);
+	if (thread->HasSpawned()) {
+		return false;
+	}
+
+	auto tls = GetCurrentTLS();
+	if (tls) {
+		return false;
+	}
+
+	thread->FromCurrentThread();
+	tls = GetCurrentTLS();
+	assert(tls->_threadIndex == idx);
+
+	tls->_threadFiber.FromCurrentThread();
+	tls->_currentFiberIndex = FindFreeFiber();
+	
+	return true;
 }
 
 nmd::fiber::Manager::ReturnCode nmd::fiber::Manager::Run(Main_t main)
@@ -87,11 +121,13 @@ nmd::fiber::Manager::ReturnCode nmd::fiber::Manager::Run(Main_t main)
 				itTls->_hasAffinity = _hasThreadAffinity;
 			}
 
-			if (!_threads[i].Spawn(ThreadCallback_Worker, this)) {
+			if (_autoSpawnThreads && !SpawnThread(i)) {
 				return ReturnCode::OSError;
 			}
 		}
 	}
+
+	mainThreadTLS->_currentFiberIndex = FindFreeFiber();
 
 	// Main
 	_mainCallback = main;
@@ -100,8 +136,6 @@ nmd::fiber::Manager::ReturnCode nmd::fiber::Manager::Run(Main_t main)
 	}
 
 	// Setup main Fiber
-	mainThreadTLS->_currentFiberIndex = FindFreeFiber();
-
 	const auto mainFiber = &_fibers[mainThreadTLS->_currentFiberIndex];
 	mainFiber->SetCallback(FiberCallback_Main);
 

@@ -95,15 +95,38 @@ void nmd::fiber::Manager::ScheduleJob(JobPriority prio, const JobInfo &job)
 	}
 }
 
-void nmd::fiber::Manager::WaitForCounter(detail::BaseCounter *counter, uint32_t targetValue)
+#include <condition_variable>
+
+void WaitForCounter_Proxy(nmd::fiber::Manager* mgr, nmd::fiber::detail::BaseCounter* counter, uint32_t targetValue, std::condition_variable* cv)
+{
+	mgr->WaitForCounter(counter, targetValue, false);
+	cv->notify_all();
+}
+
+void nmd::fiber::Manager::WaitForCounter(detail::BaseCounter *counter, uint32_t targetValue, bool blocking)
 {
 	if (counter == nullptr || counter->GetValue() == targetValue) {
 		return;
 	}
 
 	auto tls = GetCurrentTLS();
+	if (blocking) {
+		if (counter->GetValue() == targetValue) {
+			return;
+		}
+
+		std::condition_variable cv;
+		ScheduleJob(JobPriority::High, WaitForCounter_Proxy, this, counter, targetValue, &cv);
+
+		std::mutex mutex;
+		std::unique_lock<std::mutex> lock(mutex);
+		cv.wait(lock);
+
+		return;
+	}
+
 	auto fiberStored = new std::atomic_bool(false);
-	
+		
 	// Check if we're already done
 	if (counter->AddWaitingFiber(tls->_currentFiberIndex, targetValue, fiberStored)) {
 		delete fiberStored;
