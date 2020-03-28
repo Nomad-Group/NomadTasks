@@ -26,7 +26,7 @@ namespace nmd::job
 		std::chrono::system_clock::time_point _start;
 		std::chrono::system_clock::time_point _end;
 
-		virtual bool should_remove() override
+		virtual bool ShouldRemove() override
 		{
 			return (std::chrono::system_clock::now() >= _end);
 		}

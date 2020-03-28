@@ -10,13 +10,14 @@
 -- *
 -- */
 
-project "nomad-threadjob"
+project "nomad-thread"
     language "C++"
     kind "StaticLib"
-	set_proj("threadjob")
-    targetname "threadjob"
-	
-    targetdir "..\\..\\bin\\%{cfg.buildcfg}"
+	if set_proj then
+		set_proj("threadjob")
+	end
+    targetname "nomad-threadjob"
+    targetdir "../../bin/%{cfg.buildcfg}/%{cfg.platform}"
 	
     vpaths { ["*"] = "*" }
 
@@ -28,14 +29,15 @@ project "nomad-threadjob"
 
     includedirs {
         ".",
-		"./include"
+		"./include",
+		"../vendor/optick/src"
     }
 
 	disablewarnings {
 		"4098",
 		"4217"
 	}
-	
+
     files {
         "premake5.lua",
         "**.h",
@@ -43,3 +45,12 @@ project "nomad-threadjob"
         "**.cpp",
         "**.rc"
     }
+	
+	filter "configurations:Debug or Release"
+		defines { "USE_OPTICK=1" }
+		links { "optick" }
+		
+	filter "configurations:Shipping"
+		defines { "USE_OPTICK=0", "SHIPPING" }
+	
+	filter {}
