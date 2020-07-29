@@ -45,6 +45,7 @@ namespace nmd::fiber
 			std::atomic_bool* _freeWaitingSlots = nullptr;
 
 			Manager* _manager = nullptr;
+			void InternalInit();
 
 			// Methods
 		protected:

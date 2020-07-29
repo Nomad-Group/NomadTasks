@@ -21,18 +21,26 @@ nmd::fiber::detail::BaseCounter::BaseCounter(Manager* mgr, uint8_t numWaitingFib
 	_waitingFibers(waitingFibers),
 	_freeWaitingSlots(freeWaitingSlots)
 {
+}
+
+void nmd::fiber::detail::BaseCounter::InternalInit()
+{
 	for (uint8_t i = 0; i < _numWaitingFibers; i++) {
-		_freeWaitingSlots[i].store(true);
+		_freeWaitingSlots[i] = true;
 	}
 }
 
 nmd::fiber::Counter::Counter(Manager* mgr) :
 	BaseCounter(mgr, MAX_WAITING, _impl_waitingFibers, _impl_freeWaitingSlots)
-{}
+{
+	InternalInit();
+}
 
 nmd::fiber::detail::TinyCounter::TinyCounter(Manager* mgr) :
 	BaseCounter(mgr, 1, &_waitingFiber, &_freeWaitingSlot)
-{}
+{
+	InternalInit();
+}
 
 nmd::fiber::Counter::Unit_t nmd::fiber::detail::BaseCounter::Increment(Unit_t by)
 {
