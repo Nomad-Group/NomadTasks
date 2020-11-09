@@ -88,6 +88,14 @@ namespace nmd::job
 		}
 
 		template <typename Function, typename... Args>
+		IJob &Add(Function &&func, Args &&... args)
+		{
+			using rt = typename job_function_traits<std::decay_t<Function>>::return_type;
+			std::function<rt()> fn = std::bind(func, std::forward<Args>(args)...);
+			return AddInternal<rt>(fn);
+		}
+		
+		template <typename Function, typename... Args>
 		IJob &AddJob(Function &&func, Args &&... args)
 		{
 			using rt = typename job_function_traits<std::decay_t<Function>>::return_type;
