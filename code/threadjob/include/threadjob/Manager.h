@@ -41,7 +41,12 @@ namespace nmd::job
 			}
 
 			for (auto job : jobsToRun) {
-				job->Execute();
+				const bool shouldRemove = job->Execute();
+				if (shouldRemove) {
+					delete job;
+				} else {
+					Add(job);
+				}
 			}
 		}
 
